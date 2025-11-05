@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Layout } from "@/components/Layout";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { getDummyProfile, getDummyHalaqoh } from "@/lib/offline-db";
+import { useSupabaseOrDummy } from "@/hooks/use-supabase-or-dummy";
 
 interface Halaqoh {
   id: string;
@@ -26,20 +27,24 @@ interface Asatidz {
 }
 
 export default function HalaqohPage() {
-  // Dummy data to show before Supabase is connected
-  const DUMMY_ASATIDZ: Asatidz[] = [
-    { id: "as-1", nama_lengkap: "Ustadz Ahmad" },
-    { id: "as-2", nama_lengkap: "Ustadz Budi" },
-  ];
+  const { 
+    data: halaqohList, 
+    loading, 
+    addData: addHalaqoh,
+    updateData: updateHalaqoh,
+    deleteData: deleteHalaqoh,
+    syncStatus 
+  } = useSupabaseOrDummy<Halaqoh>('halaqoh', {
+    defaultDummyData: getDummyHalaqoh() as Halaqoh[],
+  });
 
-  const DUMMY_HALAQOH: Halaqoh[] = [
-    { id: "h-1", nama_halaqoh: "Halaqoh Umar bin Khattab", id_asatidz: "as-1", tingkat: "Pemula", jumlah_santri: 2, asatidz: { nama_lengkap: "Ustadz Ahmad" } },
-    { id: "h-2", nama_halaqoh: "Halaqoh Ali bin Abi Thalib", id_asatidz: "as-2", tingkat: "Menengah", jumlah_santri: 1, asatidz: { nama_lengkap: "Ustadz Budi" } },
-  ];
+  const { 
+    data: asatidzList 
+  } = useSupabaseOrDummy<Asatidz>('profiles', {
+    defaultDummyData: getDummyProfile() as any[],
+    initialFilters: [{ column: 'role', value: 'Asatidz' }]
+  });
 
-  const [halaqohList, setHalaqohList] = useState<Halaqoh[]>(DUMMY_HALAQOH);
-  const [asatidzList, setAsatidzList] = useState<Asatidz[]>(DUMMY_ASATIDZ);
-  const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
@@ -49,108 +54,23 @@ export default function HalaqohPage() {
     tingkat: "",
   });
 
-  useEffect(() => {
-    fetchAsatidz();
-    fetchHalaqoh();
-  }, []);
-
-  // ✅ Fetch list ustadz
-  const fetchAsatidz = async () => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, nama_lengkap")
-      .order("nama_lengkap");
-
-    if (error) {
-      toast.error("Gagal memuat data asatidz");
-    } else {
-      setAsatidzList(data || []);
-    }
-  };
-
-  // ✅ Fetch list halaqoh + jumlah santri + nama asatidz
-  const fetchHalaqoh = async () => {
-    setLoading(true);
-    try {
-      // Fetch basic halaqoh rows
-      const { data: halaqohData, error: halaqohError } = await supabase
-        .from("halaqoh")
-        .select("id, nama_halaqoh, id_asatidz, tingkat")
-        .order("nama_halaqoh");
-
-      if (halaqohError) throw halaqohError;
-
-      const rows = halaqohData || [];
-
-      // Collect asatidz ids and fetch profiles in one query
-      const asatidzIds = Array.from(new Set(rows.map((r: any) => r.id_asatidz).filter(Boolean)));
-      let profilesMap: Record<string, { nama_lengkap: string }> = {};
-
-      if (asatidzIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, nama_lengkap")
-          .in("id", asatidzIds as any[]);
-
-        (profiles || []).forEach((p: any) => {
-          profilesMap[p.id] = { nama_lengkap: p.nama_lengkap };
-        });
-      }
-
-      // For each halaqoh, count santri and attach asatidz name
-      const halaqohWithCount = await Promise.all(
-        rows.map(async (h: any) => {
-          const { count } = await supabase
-            .from("santri")
-            .select("*", { count: "exact", head: true })
-            .eq("id_halaqoh", h.id as string);
-
-          return {
-            id: h.id,
-            nama_halaqoh: h.nama_halaqoh,
-            id_asatidz: h.id_asatidz || null,
-            tingkat: h.tingkat || null,
-            jumlah_santri: count || 0,
-            asatidz: h.id_asatidz ? profilesMap[h.id_asatidz] || null : null,
-          } as Halaqoh;
-        })
-      );
-
-      setHalaqohList(halaqohWithCount);
-    } catch (error) {
-      console.error(error);
-      toast.error("Gagal memuat data halaqoh");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
       if (editId) {
-        const { error } = await supabase
-          .from("halaqoh")
-          .update(formData)
-          .eq("id", editId);
-        if (error) throw error;
+        await updateHalaqoh(editId, formData);
         toast.success("Halaqoh berhasil diperbarui");
       } else {
-        const { error } = await supabase.from("halaqoh").insert([formData]);
-        if (error) throw error;
+        await addHalaqoh(formData);
         toast.success("Halaqoh baru berhasil ditambahkan");
       }
 
       setIsOpen(false);
       resetForm();
-      fetchHalaqoh();
     } catch (error) {
       console.error(error);
       toast.error("Terjadi kesalahan saat menyimpan data");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -167,13 +87,11 @@ export default function HalaqohPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Yakin ingin menghapus halaqoh ini?")) return;
 
-    const { error } = await supabase.from("halaqoh").delete().eq("id", id);
-
-    if (error) {
-      toast.error("Gagal menghapus halaqoh");
-    } else {
+    try {
+      await deleteHalaqoh(id);
       toast.success("Halaqoh berhasil dihapus");
-      fetchHalaqoh();
+    } catch (error) {
+      toast.error("Gagal menghapus halaqoh");
     }
   };
 
