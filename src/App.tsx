@@ -12,6 +12,7 @@ import Santri from "./pages/Santri";
 import Absensi from "./pages/Absensi";
 import Halaqoh from "./pages/Halaqoh";
 import Penilaian from "./pages/Penilaian";
+import Ustadz from "./pages/Ustadz";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/absensi" element={<Absensi />} />
             <Route path="/halaqoh" element={<Halaqoh />} />
             <Route path="/penilaian" element={<Penilaian />} />
+            <Route path="/ustadz" element={<Ustadz />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
