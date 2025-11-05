@@ -18,7 +18,7 @@ All colors MUST be HSL.
     
     /* Primary - Emerald green */
     --primary: 160 60% 45%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 90 80% 55%; /* hijau lime */
     --primary-glow: 160 60% 55%;
     
     /* Secondary - Gold accent */
