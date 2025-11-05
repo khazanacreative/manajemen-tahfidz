@@ -95,7 +95,7 @@ export default function Dashboard() {
                   {card.title}
                 </CardTitle>
                 <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center`}>
-                  <card.icon className="w-5 h-5 text-white" />
+                  <card.icon className={`w-5 h-5 ${card.gradient.includes('primary') ? 'text-primary-glow' : 'text-white'}`} />
                 </div>
               </CardHeader>
               <CardContent>

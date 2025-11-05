@@ -10,8 +10,8 @@ const Index = () => {
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center space-y-6 max-w-4xl mx-auto">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary-glow shadow-lg animate-fade-in">
-            <BookOpen className="w-10 h-10 text-primary-foreground" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary-glow shadow-lg animate-fade-in">
+            <BookOpen className="w-10 h-10 text-primary-glow" />
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold text-foreground animate-fade-in">
@@ -61,8 +61,8 @@ const Index = () => {
               className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-all duration-300 animate-fade-in"
               style={{ animationDelay: `${0.6 + index * 0.1}s` }}
             >
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center mb-4">
-                <feature.icon className="w-6 h-6 text-primary-foreground" />
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center mb-4">
+                <feature.icon className="w-6 h-6 text-primary-glow" />
               </div>
               <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
               <p className="text-sm text-muted-foreground">{feature.description}</p>
