@@ -14,10 +14,10 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 interface Halaqoh {
   id: string;
   nama_halaqoh: string;
-  id_asatidz?: string;
-  tingkat?: string;
-  jumlah_santri: number;
-  profiles?: { nama_lengkap: string };
+  id_asatidz?: string | null;
+  tingkat?: string | null;
+  jumlah_santri?: number;
+  asatidz?: { nama_lengkap: string };
 }
 
 interface Asatidz {
@@ -31,7 +31,7 @@ export default function HalaqohPage() {
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     nama_halaqoh: "",
     id_asatidz: "",
@@ -39,26 +39,11 @@ export default function HalaqohPage() {
   });
 
   useEffect(() => {
-    fetchHalaqoh();
     fetchAsatidz();
+    fetchHalaqoh();
   }, []);
 
-  const fetchHalaqoh = async () => {
-    const { data, error } = await supabase
-      .from("halaqoh")
-      .select(`
-        *,
-        profiles (nama_lengkap)
-      `)
-      .order("nama_halaqoh");
-
-    if (error) {
-      toast.error("Gagal memuat data halaqoh");
-    } else {
-      setHalaqohList(data || []);
-    }
-  };
-
+  // ✅ Fetch list ustadz
   const fetchAsatidz = async () => {
     const { data, error } = await supabase
       .from("profiles")
@@ -72,6 +57,48 @@ export default function HalaqohPage() {
     }
   };
 
+  // ✅ Fetch list halaqoh + jumlah santri + nama asatidz
+  const fetchHalaqoh = async () => {
+    setLoading(true);
+    try {
+      const { data: halaqohData, error: halaqohError } = await supabase
+        .from("halaqoh")
+        .select(`
+          id,
+          nama_halaqoh,
+          id_asatidz,
+          tingkat,
+          profiles:nama_asatidz_id (nama_lengkap)
+        `)
+        .order("nama_halaqoh");
+
+      if (halaqohError) throw halaqohError;
+
+      // Hitung jumlah santri per halaqoh
+      const halaqohWithCount = await Promise.all(
+        (halaqohData || []).map(async (h) => {
+          const { count } = await supabase
+            .from("santri")
+            .select("*", { count: "exact", head: true })
+            .eq("id_halaqoh", h.id);
+
+          return {
+            ...h,
+            jumlah_santri: count || 0,
+            asatidz: h.profiles || null,
+          };
+        })
+      );
+
+      setHalaqohList(halaqohWithCount);
+    } catch (error) {
+      console.error(error);
+      toast.error("Gagal memuat data halaqoh");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -82,23 +109,20 @@ export default function HalaqohPage() {
           .from("halaqoh")
           .update(formData)
           .eq("id", editId);
-
         if (error) throw error;
-        toast.success("Halaqoh berhasil diupdate");
+        toast.success("Halaqoh berhasil diperbarui");
       } else {
-        const { error } = await supabase
-          .from("halaqoh")
-          .insert([formData]);
-
+        const { error } = await supabase.from("halaqoh").insert([formData]);
         if (error) throw error;
-        toast.success("Halaqoh berhasil ditambahkan");
+        toast.success("Halaqoh baru berhasil ditambahkan");
       }
 
       setIsOpen(false);
       resetForm();
       fetchHalaqoh();
     } catch (error) {
-      toast.error("Gagal menyimpan halaqoh");
+      console.error(error);
+      toast.error("Terjadi kesalahan saat menyimpan data");
     } finally {
       setLoading(false);
     }
@@ -117,10 +141,7 @@ export default function HalaqohPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Yakin ingin menghapus halaqoh ini?")) return;
 
-    const { error } = await supabase
-      .from("halaqoh")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("halaqoh").delete().eq("id", id);
 
     if (error) {
       toast.error("Gagal menghapus halaqoh");
@@ -132,11 +153,7 @@ export default function HalaqohPage() {
 
   const resetForm = () => {
     setEditId(null);
-    setFormData({
-      nama_halaqoh: "",
-      id_asatidz: "",
-      tingkat: "",
-    });
+    setFormData({ nama_halaqoh: "", id_asatidz: "", tingkat: "" });
   };
 
   return (
@@ -145,18 +162,19 @@ export default function HalaqohPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Data Halaqoh</h1>
-            <p className="text-muted-foreground">Kelola halaqoh tahfidz</p>
+            <p className="text-muted-foreground">Kelola data halaqoh tahfidz</p>
           </div>
+
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
-                <Plus className="w-4 h-4 mr-2" />
-                Tambah Halaqoh
+                <Plus className="w-4 h-4 mr-2" /> Tambah Halaqoh
               </Button>
             </DialogTrigger>
+
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editId ? "Edit Halaqoh" : "Tambah Halaqoh"}</DialogTitle>
+                <DialogTitle>{editId ? "Edit Halaqoh" : "Tambah Halaqoh Baru"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -164,15 +182,15 @@ export default function HalaqohPage() {
                   <Input
                     value={formData.nama_halaqoh}
                     onChange={(e) => setFormData({ ...formData, nama_halaqoh: e.target.value })}
-                    placeholder="Contoh: Halaqoh A"
+                    placeholder="Contoh: Halaqoh Umar bin Khattab"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Ustadz Pembimbing</Label>
-                  <Select 
-                    value={formData.id_asatidz} 
+                  <Select
+                    value={formData.id_asatidz}
                     onValueChange={(value) => setFormData({ ...formData, id_asatidz: value })}
                   >
                     <SelectTrigger>
@@ -215,45 +233,41 @@ export default function HalaqohPage() {
             <CardTitle>Daftar Halaqoh</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama Halaqoh</TableHead>
-                  <TableHead>Ustadz Pembimbing</TableHead>
-                  <TableHead>Tingkat</TableHead>
-                  <TableHead>Jumlah Santri</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {halaqohList.map((halaqoh) => (
-                  <TableRow key={halaqoh.id}>
-                    <TableCell className="font-medium">{halaqoh.nama_halaqoh}</TableCell>
-                    <TableCell>{halaqoh.profiles?.nama_lengkap || "-"}</TableCell>
-                    <TableCell>{halaqoh.tingkat || "-"}</TableCell>
-                    <TableCell>{halaqoh.jumlah_santri}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleEdit(halaqoh)}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDelete(halaqoh.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            {loading ? (
+              <p className="text-center text-muted-foreground py-4">Memuat data...</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama Halaqoh</TableHead>
+                    <TableHead>Ustadz Pembimbing</TableHead>
+                    <TableHead>Tingkat</TableHead>
+                    <TableHead>Jumlah Santri</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {halaqohList.map((h) => (
+                    <TableRow key={h.id}>
+                      <TableCell className="font-medium">{h.nama_halaqoh}</TableCell>
+                      <TableCell>{h.asatidz?.nama_lengkap || "-"}</TableCell>
+                      <TableCell>{h.tingkat || "-"}</TableCell>
+                      <TableCell>{h.jumlah_santri ?? 0}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button size="icon" variant="ghost" onClick={() => handleEdit(h)}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => handleDelete(h.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
