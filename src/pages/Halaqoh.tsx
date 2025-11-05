@@ -26,8 +26,19 @@ interface Asatidz {
 }
 
 export default function HalaqohPage() {
-  const [halaqohList, setHalaqohList] = useState<Halaqoh[]>([]);
-  const [asatidzList, setAsatidzList] = useState<Asatidz[]>([]);
+  // Dummy data to show before Supabase is connected
+  const DUMMY_ASATIDZ: Asatidz[] = [
+    { id: "as-1", nama_lengkap: "Ustadz Ahmad" },
+    { id: "as-2", nama_lengkap: "Ustadz Budi" },
+  ];
+
+  const DUMMY_HALAQOH: Halaqoh[] = [
+    { id: "h-1", nama_halaqoh: "Halaqoh Umar bin Khattab", id_asatidz: "as-1", tingkat: "Pemula", jumlah_santri: 2, asatidz: { nama_lengkap: "Ustadz Ahmad" } },
+    { id: "h-2", nama_halaqoh: "Halaqoh Ali bin Abi Thalib", id_asatidz: "as-2", tingkat: "Menengah", jumlah_santri: 1, asatidz: { nama_lengkap: "Ustadz Budi" } },
+  ];
+
+  const [halaqohList, setHalaqohList] = useState<Halaqoh[]>(DUMMY_HALAQOH);
+  const [asatidzList, setAsatidzList] = useState<Asatidz[]>(DUMMY_ASATIDZ);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);

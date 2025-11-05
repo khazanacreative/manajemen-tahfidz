@@ -1,9 +1,10 @@
-import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 
-dotenv.config();
 
+// Read credentials from environment. You can create a .env and run with
+//    node -r dotenv/config ./scripts/seed-supabase.js
+// or set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in your shell.
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_KEY;
 

@@ -28,8 +28,20 @@ interface Santri {
 }
 
 export default function AbsensiPage() {
-  const [absensiList, setAbsensiList] = useState<Absensi[]>([]);
-  const [santriList, setSantriList] = useState<Santri[]>([]);
+  // Dummy data shown before Supabase is connected or when fetch fails
+  const DUMMY_SANTRI: Santri[] = [
+    { id: "santri-1", nama_santri: "Santri A", nis: "S001" },
+    { id: "santri-2", nama_santri: "Santri B", nis: "S002" },
+    { id: "santri-3", nama_santri: "Santri C", nis: "S003" },
+  ];
+
+  const DUMMY_ABSENSI: Absensi[] = [
+    { id: "abs-1", id_santri: "santri-1", tanggal: new Date().toISOString(), status_kehadiran: "Hadir", santri: { nama_santri: "Santri A", nis: "S001" } },
+    { id: "abs-2", id_santri: "santri-2", tanggal: new Date().toISOString(), status_kehadiran: "Izin", santri: { nama_santri: "Santri B", nis: "S002" } },
+  ];
+
+  const [absensiList, setAbsensiList] = useState<Absensi[]>(DUMMY_ABSENSI);
+  const [santriList, setSantriList] = useState<Santri[]>(DUMMY_SANTRI);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
