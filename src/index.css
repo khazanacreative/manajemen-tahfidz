@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Islamic theme - Emerald & Gold */
+    --background: 48 20% 97%;
+    --foreground: 160 30% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 160 30% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 30% 15%;
+    
+    /* Primary - Emerald green */
+    --primary: 160 60% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 160 60% 55%;
+    
+    /* Secondary - Gold accent */
+    --secondary: 45 90% 55%;
+    --secondary-foreground: 160 30% 15%;
+    
+    /* Muted - Cream tones */
+    --muted: 48 30% 92%;
+    --muted-foreground: 160 20% 40%;
+    
+    /* Accent - Light emerald */
+    --accent: 160 40% 90%;
+    --accent-foreground: 160 60% 30%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 160 20% 88%;
+    --input: 160 20% 88%;
+    --ring: 160 60% 45%;
+    --radius: 0.75rem;
+    
+    /* Sidebar Islamic theme */
+    --sidebar-background: 160 30% 96%;
+    --sidebar-foreground: 160 30% 15%;
+    --sidebar-primary: 160 60% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 160 40% 90%;
+    --sidebar-accent-foreground: 160 60% 30%;
+    --sidebar-border: 160 20% 88%;
+    --sidebar-ring: 160 60% 45%;
+  }
+
+  .dark {
+    --background: 160 30% 8%;
+    --foreground: 48 20% 95%;
+    --card: 160 25% 12%;
+    --card-foreground: 48 20% 95%;
+    --popover: 160 25% 12%;
+    --popover-foreground: 48 20% 95%;
+    
+    /* Primary - Brighter emerald for dark mode */
+    --primary: 160 55% 50%;
+    --primary-foreground: 160 30% 8%;
+    --primary-glow: 160 55% 60%;
+    
+    /* Secondary - Gold */
+    --secondary: 45 85% 60%;
+    --secondary-foreground: 160 30% 8%;
+    
+    --muted: 160 20% 18%;
+    --muted-foreground: 48 15% 65%;
+    --accent: 160 40% 20%;
+    --accent-foreground: 160 55% 85%;
+    
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 160 20% 22%;
+    --input: 160 20% 22%;
+    --ring: 160 55% 50%;
+    
+    /* Sidebar dark mode */
+    --sidebar-background: 160 30% 10%;
+    --sidebar-foreground: 48 20% 95%;
+    --sidebar-primary: 160 55% 50%;
+    --sidebar-primary-foreground: 160 30% 8%;
+    --sidebar-accent: 160 40% 20%;
+    --sidebar-accent-foreground: 160 55% 85%;
+    --sidebar-border: 160 20% 22%;
+    --sidebar-ring: 160 55% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
