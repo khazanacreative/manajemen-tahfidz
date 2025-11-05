@@ -30,8 +30,35 @@ interface Halaqoh {
 }
 
 export default function SantriPage() {
-  const [santriList, setSantriList] = useState<Santri[]>([]);
-  const [halaqohList, setHalaqohList] = useState<Halaqoh[]>([]);
+  // Dummy data shown before Supabase is connected or when fetch fails
+  const DUMMY_HALAQOH: Halaqoh[] = [
+    { id: "h-1", nama_halaqoh: "Halaqoh Umar bin Khattab" },
+    { id: "h-2", nama_halaqoh: "Halaqoh Ali bin Abi Thalib" },
+  ];
+
+  const DUMMY_SANTRI: Santri[] = [
+    { 
+      id: "s-1", 
+      nis: "2025001", 
+      nama_santri: "Ahmad Santri", 
+      id_halaqoh: "h-1",
+      tanggal_masuk: "2025-01-01",
+      status: "Aktif",
+      halaqoh: { nama_halaqoh: "Halaqoh Umar bin Khattab" }
+    },
+    { 
+      id: "s-2", 
+      nis: "2025002", 
+      nama_santri: "Budi Santri", 
+      id_halaqoh: "h-2",
+      tanggal_masuk: "2025-01-02",
+      status: "Aktif",
+      halaqoh: { nama_halaqoh: "Halaqoh Ali bin Abi Thalib" }
+    },
+  ];
+
+  const [santriList, setSantriList] = useState<Santri[]>(DUMMY_SANTRI);
+  const [halaqohList, setHalaqohList] = useState<Halaqoh[]>(DUMMY_HALAQOH);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);

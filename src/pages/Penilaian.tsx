@@ -31,12 +31,45 @@ interface Santri {
 }
 
 export default function PenilaianPage() {
-  const [penilaianList, setPenilaianList] = useState<Penilaian[]>([]);
-  const [santriList, setSantriList] = useState<Santri[]>([]);
+  // Dummy data shown before Supabase is connected or when fetch fails
+  const DUMMY_SANTRI: Santri[] = [
+    { id: "s-1", nama_santri: "Ahmad Santri" },
+    { id: "s-2", nama_santri: "Budi Santri" },
+  ];
+
+  const DUMMY_PENILAIAN: Penilaian[] = [
+    {
+      id: "p-1",
+      id_santri: "s-1",
+      id_asatidz: "as-1",
+      tanggal_penilaian: "2025-01-01",
+      tajwid: 85,
+      makharij: 80,
+      kelancaran: 90,
+      catatan: "Perlu perbaikan pada mad wajib",
+      santri: { nama_santri: "Ahmad Santri" },
+      profiles: { nama_lengkap: "Ustadz Ahmad" }
+    },
+    {
+      id: "p-2",
+      id_santri: "s-2",
+      id_asatidz: "as-2",
+      tanggal_penilaian: "2025-01-02",
+      tajwid: 75,
+      makharij: 85,
+      kelancaran: 80,
+      catatan: "Sudah lebih lancar dari sebelumnya",
+      santri: { nama_santri: "Budi Santri" },
+      profiles: { nama_lengkap: "Ustadz Budi" }
+    },
+  ];
+
+  const [penilaianList, setPenilaianList] = useState<Penilaian[]>(DUMMY_PENILAIAN);
+  const [santriList, setSantriList] = useState<Santri[]>(DUMMY_SANTRI);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [currentUserId, setCurrentUserId] = useState<string>("as-1"); // Default dummy ID
   
   const [formData, setFormData] = useState({
     id_santri: "",

@@ -34,12 +34,49 @@ interface Santri {
 }
 
 export default function Setoran() {
-  const [setoranList, setSetoranList] = useState<Setoran[]>([]);
-  const [santriList, setSantriList] = useState<Santri[]>([]);
+  // Dummy data shown before Supabase is connected or when fetch fails
+  const DUMMY_SANTRI: Santri[] = [
+    { id: "s-1", nama_santri: "Ahmad Santri" },
+    { id: "s-2", nama_santri: "Budi Santri" },
+  ];
+
+  const DUMMY_SETORAN: Setoran[] = [
+    {
+      id: "set-1",
+      id_santri: "s-1",
+      id_asatidz: "as-1",
+      tanggal_setoran: "2025-01-01",
+      juz: 1,
+      ayat_dari: 1,
+      ayat_sampai: 7,
+      nilai_kelancaran: 90,
+      status: "Lancar",
+      catatan: "Alhamdulillah lancar",
+      santri: { nama_santri: "Ahmad Santri" },
+      profiles: { nama_lengkap: "Ustadz Ahmad" }
+    },
+    {
+      id: "set-2",
+      id_santri: "s-2",
+      id_asatidz: "as-2",
+      tanggal_setoran: "2025-01-02",
+      juz: 1,
+      ayat_dari: 8,
+      ayat_sampai: 15,
+      nilai_kelancaran: 75,
+      status: "Ulangi",
+      catatan: "Perlu mengulang pada ayat 10-12",
+      santri: { nama_santri: "Budi Santri" },
+      profiles: { nama_lengkap: "Ustadz Budi" }
+    },
+  ];
+
+  const [setoranList, setSetoranList] = useState<Setoran[]>(DUMMY_SETORAN);
+  const [santriList, setSantriList] = useState<Santri[]>(DUMMY_SANTRI);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [currentUserId, setCurrentUserId] = useState<string>("as-1"); // Default dummy ID
   
   const [formData, setFormData] = useState({
     id_santri: "",
@@ -53,77 +90,38 @@ export default function Setoran() {
   });
 
   useEffect(() => {
-    getCurrentUser();
-    fetchSetoran();
-    fetchSantri();
+    // Temporarily disabled for dummy data mode
+    // getCurrentUser();
+    // fetchSetoran();
+    // fetchSantri();
   }, []);
-
-  const getCurrentUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) setCurrentUserId(user.id);
-  };
-
-  const fetchSetoran = async () => {
-    const { data, error } = await supabase
-      .from("setoran")
-      .select(`
-        *,
-        santri (nama_santri),
-        profiles (nama_lengkap)
-      `)
-      .order("tanggal_setoran", { ascending: false });
-
-    if (error) {
-      toast.error("Gagal memuat data setoran");
-    } else {
-      setSetoranList(data || []);
-    }
-  };
-
-  const fetchSantri = async () => {
-    const { data, error } = await supabase
-      .from("santri")
-      .select("id, nama_santri")
-      .eq("status", "Aktif")
-      .order("nama_santri");
-
-    if (error) {
-      toast.error("Gagal memuat data santri");
-    } else {
-      setSantriList(data || []);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const dataToSave = {
+      // Simulating server interaction with dummy data
+      const newData = {
+        id: `set-${Date.now()}`,
         ...formData,
         id_asatidz: currentUserId,
+        santri: DUMMY_SANTRI.find(s => s.id === formData.id_santri),
+        profiles: { nama_lengkap: "Ustadz Ahmad" }
       };
 
       if (editId) {
-        const { error } = await supabase
-          .from("setoran")
-          .update(dataToSave)
-          .eq("id", editId);
-
-        if (error) throw error;
+        setSetoranList(prev => prev.map(item => 
+          item.id === editId ? newData : item
+        ));
         toast.success("Setoran berhasil diupdate");
       } else {
-        const { error } = await supabase
-          .from("setoran")
-          .insert([dataToSave]);
-
-        if (error) throw error;
+        setSetoranList(prev => [...prev, newData]);
         toast.success("Setoran berhasil ditambahkan");
       }
 
       setIsOpen(false);
       resetForm();
-      fetchSetoran();
     } catch (error) {
       toast.error("Gagal menyimpan setoran");
     } finally {
@@ -149,16 +147,12 @@ export default function Setoran() {
   const handleDelete = async (id: string) => {
     if (!confirm("Yakin ingin menghapus setoran ini?")) return;
 
-    const { error } = await supabase
-      .from("setoran")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      toast.error("Gagal menghapus setoran");
-    } else {
+    try {
+      // Simulating server interaction with dummy data
+      setSetoranList(prev => prev.filter(item => item.id !== id));
       toast.success("Setoran berhasil dihapus");
-      fetchSetoran();
+    } catch (error) {
+      toast.error("Gagal menghapus setoran");
     }
   };
 
