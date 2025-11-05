@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"; // Ensure React is imported
 import { Layout } from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,18 +50,22 @@ export default function SantriPage() {
   }, []);
 
   const fetchSantri = async () => {
-    const { data, error } = await supabase
-      .from("santri")
-      .select(`
-        *,
-        halaqoh (nama_halaqoh)
-      `)
-      .order("nama_santri");
+    try {
+      const { data, error } = await supabase
+        .from("santri")
+        .select("id, nis, nama_santri, id_halaqoh, tanggal_masuk, status, halaqoh (nama_halaqoh)")
+        .order("nama_santri");
 
-    if (error) {
-      toast.error("Gagal memuat data santri");
-    } else {
+      if (error) {
+        console.error("Error fetching santri:", error);
+        toast.error("Gagal memuat data santri");
+        return;
+      }
+
       setSantriList(data || []);
+    } catch (err) {
+      console.error("Unexpected error fetching santri:", err);
+      toast.error("Terjadi kesalahan saat memuat data santri");
     }
   };
 
@@ -81,6 +85,19 @@ export default function SantriPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Input validation
+    if (!formData.nis || !formData.nama_santri) {
+      toast.error("NIS dan Nama Santri wajib diisi");
+      setLoading(false);
+      return;
+    }
+
+    if (new Date(formData.tanggal_masuk) > new Date()) {
+      toast.error("Tanggal masuk tidak boleh di masa depan");
+      setLoading(false);
+      return;
+    }
 
     try {
       if (editId) {
@@ -104,6 +121,7 @@ export default function SantriPage() {
       resetForm();
       fetchSantri();
     } catch (error) {
+      console.error("Error saving santri:", error);
       toast.error("Gagal menyimpan data santri");
     } finally {
       setLoading(false);
@@ -252,51 +270,57 @@ export default function SantriPage() {
             <CardTitle>Daftar Santri</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>NIS</TableHead>
-                  <TableHead>Nama Santri</TableHead>
-                  <TableHead>Halaqoh</TableHead>
-                  <TableHead>Tanggal Masuk</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {santriList.map((santri) => (
-                  <TableRow key={santri.id}>
-                    <TableCell>{santri.nis}</TableCell>
-                    <TableCell className="font-medium">{santri.nama_santri}</TableCell>
-                    <TableCell>{santri.halaqoh?.nama_halaqoh || "-"}</TableCell>
-                    <TableCell>{new Date(santri.tanggal_masuk).toLocaleDateString('id-ID')}</TableCell>
-                    <TableCell>
-                      <Badge variant={santri.status === "Aktif" ? "default" : "secondary"}>
-                        {santri.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleEdit(santri)}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDelete(santri.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            {loading ? (
+              <div className="flex justify-center py-6">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>NIS</TableHead>
+                    <TableHead>Nama Santri</TableHead>
+                    <TableHead>Halaqoh</TableHead>
+                    <TableHead>Tanggal Masuk</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {santriList.map((santri) => (
+                    <TableRow key={santri.id}>
+                      <TableCell>{santri.nis}</TableCell>
+                      <TableCell className="font-medium">{santri.nama_santri}</TableCell>
+                      <TableCell>{santri.halaqoh?.nama_halaqoh || "-"}</TableCell>
+                      <TableCell>{new Date(santri.tanggal_masuk).toLocaleDateString("id-ID")}</TableCell>
+                      <TableCell>
+                        <Badge variant={santri.status === "Aktif" ? "default" : "secondary"}>
+                          {santri.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleEdit(santri)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDelete(santri.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

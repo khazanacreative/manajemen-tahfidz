@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; // Ensure React is imported
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { validateEmail, validatePhoneNumber } from "@/lib/validators"; // Import validation helpers
+import { supabaseService } from "@/services/supabaseService"; // Modularize Supabase logic
+
+// Define types for Supabase tables
+interface UserRole {
+  user_id: string;
+  role: string;
+}
+
+interface Profile {
+  id: string;
+  nama_lengkap: string;
+  username: string;
+  email: string;
+  no_hp: string | null;
+  aktif: boolean;
+}
+
+interface Halaqoh {
+  id_asatidz: string;
+  count: number;
+}
 
 interface Ustadz {
   id: string;
@@ -35,9 +57,23 @@ const Ustadz = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const dummyData: Ustadz[] = [
+    { id: "1", nama_lengkap: "Ahmad Fauzi", username: "ahmadf", email: "ahmadf@example.com", no_hp: "081234567890", aktif: true, halaqoh_count: 5 },
+    { id: "2", nama_lengkap: "Budi Santoso", username: "budis", email: "budis@example.com", no_hp: "081234567891", aktif: true, halaqoh_count: 3 },
+    { id: "3", nama_lengkap: "Citra Dewi", username: "citrad", email: "citrad@example.com", no_hp: "081234567892", aktif: false, halaqoh_count: 2 },
+    { id: "4", nama_lengkap: "Dedi Pratama", username: "dedip", email: "dedip@example.com", no_hp: "081234567893", aktif: true, halaqoh_count: 4 },
+    { id: "5", nama_lengkap: "Eka Putra", username: "ekap", email: "ekap@example.com", no_hp: "081234567894", aktif: true, halaqoh_count: 1 },
+    { id: "6", nama_lengkap: "Fajar Hidayat", username: "fajarh", email: "fajarh@example.com", no_hp: "081234567895", aktif: false, halaqoh_count: 0 },
+    { id: "7", nama_lengkap: "Gita Anggraini", username: "gitaa", email: "gitaa@example.com", no_hp: "081234567896", aktif: true, halaqoh_count: 6 },
+    { id: "8", nama_lengkap: "Hendra Wijaya", username: "hendraw", email: "hendraw@example.com", no_hp: "081234567897", aktif: true, halaqoh_count: 7 },
+    { id: "9", nama_lengkap: "Indra Kusuma", username: "indrak", email: "indrak@example.com", no_hp: "081234567898", aktif: false, halaqoh_count: 3 },
+    { id: "10", nama_lengkap: "Joko Susilo", username: "jokos", email: "jokos@example.com", no_hp: "081234567899", aktif: true, halaqoh_count: 8 },
+  ];
+
   useEffect(() => {
     checkAuth();
-    fetchUstadz();
+    // Replace fetchUstadz with dummy data for testing
+    setUstadz(dummyData);
   }, []);
 
   const checkAuth = async () => {
@@ -49,13 +85,13 @@ const Ustadz = () => {
     setLoading(true);
     try {
       const { data: rolesData, error: rolesError } = await supabase
-        .from("user_roles")
+        .from<UserRole>("user_roles")
         .select("user_id")
         .eq("role", "Asatidz");
 
       if (rolesError) throw rolesError;
 
-      const userIds = rolesData?.map(r => r.user_id) || [];
+      const userIds = rolesData?.map((r) => r.user_id) || [];
 
       if (userIds.length === 0) {
         setUstadz([]);
@@ -63,23 +99,23 @@ const Ustadz = () => {
       }
 
       const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
+        .from<Profile>("profiles")
         .select("*")
         .in("id", userIds);
 
       if (profilesError) throw profilesError;
 
       const { data: halaqohCounts } = await supabase
-        .from("halaqoh")
+        .from<Halaqoh>("halaqoh")
         .select("id_asatidz, count:id", { count: "exact" })
         .in("id_asatidz", userIds);
 
       const countMap: Record<string, number> = {};
-      halaqohCounts?.forEach(item => {
+      halaqohCounts?.forEach((item) => {
         countMap[item.id_asatidz] = (countMap[item.id_asatidz] || 0) + 1;
       });
 
-      const mergedData = profilesData.map(p => ({
+      const mergedData = profilesData.map((p) => ({
         ...p,
         halaqoh_count: countMap[p.id] || 0,
       }));
@@ -96,48 +132,26 @@ const Ustadz = () => {
     e.preventDefault();
     setLoading(true);
 
+    // Input validation
+    if (!validateEmail(formData.email)) {
+      toast({ title: "Error", description: "Email tidak valid", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    if (formData.no_hp && !validatePhoneNumber(formData.no_hp)) {
+      toast({ title: "Error", description: "Nomor HP tidak valid", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
     try {
       if (editingUstadz) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            nama_lengkap: formData.nama_lengkap,
-            username: formData.username,
-            email: formData.email,
-            no_hp: formData.no_hp,
-          })
-          .eq("id", editingUstadz.id);
-
-        if (error) throw error;
+        await supabaseService.updateUstadz(editingUstadz.id, formData);
         toast({ title: "Berhasil", description: "Data ustadz diperbarui" });
       } else {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            data: {
-              nama_lengkap: formData.nama_lengkap,
-              username: formData.username,
-            },
-          },
-        });
-
-        if (authError) throw authError;
-
-        if (authData.user) {
-          await supabase.from("user_roles").insert({
-            user_id: authData.user.id,
-            role: "Asatidz",
-          });
-
-          if (formData.no_hp) {
-            await supabase.from("profiles")
-              .update({ no_hp: formData.no_hp })
-              .eq("id", authData.user.id);
-          }
-
-          toast({ title: "Berhasil", description: "Ustadz baru berhasil ditambahkan" });
-        }
+        await supabaseService.addUstadz(formData);
+        toast({ title: "Berhasil", description: "Ustadz baru berhasil ditambahkan" });
       }
 
       handleDialogClose();
@@ -165,8 +179,7 @@ const Ustadz = () => {
     if (!confirm("Yakin ingin menonaktifkan ustadz ini?")) return;
 
     try {
-      await supabase.from("user_roles").delete().eq("user_id", id).eq("role", "Asatidz");
-      await supabase.from("profiles").update({ aktif: false }).eq("id", id);
+      await supabaseService.deleteUstadz(id);
       toast({ title: "Berhasil", description: "Ustadz dinonaktifkan" });
       fetchUstadz();
     } catch (err: any) {
@@ -197,16 +210,16 @@ const Ustadz = () => {
               </DialogHeader>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {["nama_lengkap", "username", "email", "no_hp"].map((field) => (
+                {['nama_lengkap', 'username', 'email', 'no_hp'].map((field) => (
                   <div key={field}>
-                    <Label htmlFor={field}>{field.replace("_", " ").toUpperCase()}</Label>
+                    <Label htmlFor={field}>{field.replace('_', ' ').toUpperCase()}</Label>
                     <Input
                       id={field}
-                      type={field === "email" ? "email" : "text"}
+                      type={field === 'email' ? 'email' : 'text'}
                       value={(formData as any)[field]}
                       onChange={(e) => setFormData({ ...formData, [field]: e.target.value })}
-                      required={field !== "no_hp"}
-                      disabled={field === "email" && !!editingUstadz}
+                      required={field !== 'no_hp'}
+                      disabled={field === 'email' && !!editingUstadz}
                     />
                   </div>
                 ))}
@@ -264,15 +277,15 @@ const Ustadz = () => {
                     <TableCell>{u.nama_lengkap}</TableCell>
                     <TableCell>{u.username}</TableCell>
                     <TableCell>{u.email}</TableCell>
-                    <TableCell>{u.no_hp || "-"}</TableCell>
+                    <TableCell>{u.no_hp || '-'}</TableCell>
                     <TableCell>{u.halaqoh_count || 0}</TableCell>
                     <TableCell>
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          u.aktif ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                          u.aktif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        {u.aktif ? "Aktif" : "Nonaktif"}
+                        {u.aktif ? 'Aktif' : 'Nonaktif'}
                       </span>
                     </TableCell>
                     <TableCell>
