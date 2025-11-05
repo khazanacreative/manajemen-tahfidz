@@ -16,10 +16,11 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 160 30% 15%;
     
-    /* Primary - Emerald green */
-    --primary: 160 60% 45%;
-    --primary-foreground: 90 80% 55%; /* hijau lime */
-    --primary-glow: 160 60% 55%;
+  /* Primary - Emerald green */
+  --primary: 160 60% 45%;
+  /* primary-foreground should be white for readable text; keep glow/lighter tone for accents */
+  --primary-foreground: 0 0% 100%; /* putih */
+  --primary-glow: 160 60% 55%; /* lime for glow/gradient */
     
     /* Secondary - Gold accent */
     --secondary: 45 90% 55%;
@@ -99,4 +100,7 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+    /* utility to color icons with the primary glow (lime) when placed on primary gradient backgrounds */
+    .text-primary-glow { color: hsl(var(--primary-glow)); }
 }

@@ -61,32 +61,47 @@ export default function HalaqohPage() {
   const fetchHalaqoh = async () => {
     setLoading(true);
     try {
+      // Fetch basic halaqoh rows
       const { data: halaqohData, error: halaqohError } = await supabase
         .from("halaqoh")
-        .select(`
-          id,
-          nama_halaqoh,
-          id_asatidz,
-          tingkat,
-          profiles:nama_asatidz_id (nama_lengkap)
-        `)
+        .select("id, nama_halaqoh, id_asatidz, tingkat")
         .order("nama_halaqoh");
 
       if (halaqohError) throw halaqohError;
 
-      // Hitung jumlah santri per halaqoh
+      const rows = halaqohData || [];
+
+      // Collect asatidz ids and fetch profiles in one query
+      const asatidzIds = Array.from(new Set(rows.map((r: any) => r.id_asatidz).filter(Boolean)));
+      let profilesMap: Record<string, { nama_lengkap: string }> = {};
+
+      if (asatidzIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, nama_lengkap")
+          .in("id", asatidzIds as any[]);
+
+        (profiles || []).forEach((p: any) => {
+          profilesMap[p.id] = { nama_lengkap: p.nama_lengkap };
+        });
+      }
+
+      // For each halaqoh, count santri and attach asatidz name
       const halaqohWithCount = await Promise.all(
-        (halaqohData || []).map(async (h) => {
+        rows.map(async (h: any) => {
           const { count } = await supabase
             .from("santri")
             .select("*", { count: "exact", head: true })
-            .eq("id_halaqoh", h.id);
+            .eq("id_halaqoh", h.id as string);
 
           return {
-            ...h,
+            id: h.id,
+            nama_halaqoh: h.nama_halaqoh,
+            id_asatidz: h.id_asatidz || null,
+            tingkat: h.tingkat || null,
             jumlah_santri: count || 0,
-            asatidz: h.profiles || null,
-          };
+            asatidz: h.id_asatidz ? profilesMap[h.id_asatidz] || null : null,
+          } as Halaqoh;
         })
       );
 

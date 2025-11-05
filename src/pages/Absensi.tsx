@@ -47,18 +47,47 @@ export default function AbsensiPage() {
   }, []);
 
   const fetchAbsensi = async () => {
-    const { data, error } = await supabase
-      .from("absensi")
-      .select(`
-        *,
-        santri (nama_santri, nis)
-      `)
-      .order("tanggal", { ascending: false });
+    setLoading(true);
+    try {
+      const { data: absensiData, error: absensiError } = await supabase
+        .from("absensi")
+        .select("id, id_santri, tanggal, status_kehadiran, keterangan")
+        .order("tanggal", { ascending: false });
 
-    if (error) {
+      if (absensiError) throw absensiError;
+
+      const rows = absensiData || [];
+
+      // Collect santri ids referenced in absensi
+      const santriIds = Array.from(new Set(rows.map((r: any) => r.id_santri).filter(Boolean)));
+
+      let santriMap: Record<string, { nama_santri: string; nis: string }> = {};
+      if (santriIds.length > 0) {
+        const { data: santriData } = await supabase
+          .from("santri")
+          .select("id, nama_santri, nis")
+          .in("id", santriIds as any[]);
+
+        (santriData || []).forEach((s: any) => {
+          santriMap[s.id] = { nama_santri: s.nama_santri, nis: s.nis };
+        });
+      }
+
+      const mapped = rows.map((r: any) => ({
+        id: r.id,
+        id_santri: r.id_santri,
+        tanggal: r.tanggal,
+        status_kehadiran: r.status_kehadiran,
+        keterangan: r.keterangan,
+        santri: r.id_santri ? santriMap[r.id_santri] || null : null,
+      } as Absensi));
+
+      setAbsensiList(mapped);
+    } catch (err) {
+      console.error(err);
       toast.error("Gagal memuat data absensi");
-    } else {
-      setAbsensiList(data || []);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,18 +110,37 @@ export default function AbsensiPage() {
     setLoading(true);
 
     try {
+      // Basic validation
+      if (!formData.id_santri) {
+        toast.error("Pilih santri terlebih dahulu");
+        setLoading(false);
+        return;
+      }
+
+      // Ensure tanggal is a string (YYYY-MM-DD)
+      const payload = {
+        id_santri: formData.id_santri,
+        tanggal: formData.tanggal,
+        status_kehadiran: formData.status_kehadiran,
+        keterangan: formData.keterangan || null,
+      } as any;
+
       if (editId) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("absensi")
-          .update(formData)
-          .eq("id", editId);
+          .update(payload)
+          .eq("id", editId)
+          .select()
+          .single();
 
         if (error) throw error;
         toast.success("Absensi berhasil diupdate");
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("absensi")
-          .insert([formData]);
+          .insert([payload])
+          .select()
+          .single();
 
         if (error) throw error;
         toast.success("Absensi berhasil ditambahkan");
@@ -153,6 +201,17 @@ export default function AbsensiPage() {
       "Alfa": "destructive",
     };
     return <Badge variant={variants[status] || "default"}>{status}</Badge>;
+  };
+
+  const safeFormatDate = (d: any) => {
+    try {
+      if (!d) return "-";
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return String(d);
+      return date.toLocaleDateString("id-ID");
+    } catch (e) {
+      return String(d || "-");
+    }
   };
 
   return (
@@ -264,7 +323,7 @@ export default function AbsensiPage() {
               <TableBody>
                 {absensiList.map((absensi) => (
                   <TableRow key={absensi.id}>
-                    <TableCell>{new Date(absensi.tanggal).toLocaleDateString('id-ID')}</TableCell>
+                    <TableCell>{safeFormatDate(absensi.tanggal)}</TableCell>
                     <TableCell>{absensi.santri?.nis || "-"}</TableCell>
                     <TableCell className="font-medium">{absensi.santri?.nama_santri || "-"}</TableCell>
                     <TableCell>{getStatusBadge(absensi.status_kehadiran)}</TableCell>
